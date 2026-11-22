@@ -1,1 +1,3 @@
-WasteID|FoodID|FoodName|Quantity|Unit|Date
+WasteID,FoodID,FoodName,Quantity,Unit,Date
+W1795354511787,TEST001,Milk,0.5,L,2026-11-22
+W1795354518898,TEST002,Apple,0.5,kg,2026-11-22

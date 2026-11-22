@@ -19,25 +19,45 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 
+/**
+ * Main application window for the Food Waste Management System.
+ * Provides the graphical interface for managing food inventory and waste records.
+ */
 public class MainFrame extends JFrame {
 
+    /** Manages food inventory operations. */
     private FoodManager foodManager;
+    /** Finds expired and soon-to-expire food items. */
     private ExpiryChecker expiryChecker;
+    /** Stores and generates food waste reports. */
     private WasteReport wasteReport;
+    /** Loads and saves food and waste data in CSV files. */
     private FileHandler fileHandler;
 
+    /** Displays the current food inventory. */
     private JTable foodTable;
+    /** Supplies rows and columns to the food table. */
     private DefaultTableModel tableModel;
 
+    /** Input field for the food ID. */
     private JTextField idField;
+    /** Input field for the food name. */
     private JTextField nameField;
+    /** Input field for the food category. */
     private JTextField categoryField;
+    /** Input field for the food quantity. */
     private JTextField quantityField;
+    /** Input field for the quantity unit. */
     private JTextField unitField;
+    /** Input field for the expiry date of perishable food. */
     private JTextField expiryField;
-
+    /** Selects whether the food is perishable or non-perishable. */
     private JComboBox<String> typeBox;
 
+    /**
+     * Creates the main window, initializes services, loads saved data,
+     * and prepares the graphical user interface.
+     */
     public MainFrame() {
 
         foodManager = new FoodManager();
@@ -56,6 +76,10 @@ public class MainFrame extends JFrame {
         refreshTable();
     }
 
+    /**
+     * Builds the Swing interface, including input fields, the inventory table,
+     * action buttons, and table-row selection handling.
+     */
     private void createGUI() {
 
         setLayout(new BorderLayout(10, 10));
@@ -187,7 +211,22 @@ public class MainFrame extends JFrame {
             }
         });
     }
-
+    /**
+     * Validates whether a quantity is a positive finite number.
+     */
+    /**
+     * Checks whether a quantity is a positive finite number.
+     *
+     * @param quantity quantity value to validate
+     * @return true if the value is finite and greater than zero
+     */
+    private boolean isValidQuantity(double quantity) {
+        return Double.isFinite(quantity) && quantity > 0;
+    }
+    /**
+     * Validates the input fields, creates a food object, and adds it to inventory.
+     * Saves the updated data and refreshes the table when the operation succeeds.
+     */
     private void addFood() {
 
         try {
@@ -195,9 +234,6 @@ public class MainFrame extends JFrame {
             String id = idField.getText().trim();
             String name = nameField.getText().trim();
             String category = categoryField.getText().trim();
-            double quantity = Double.parseDouble(
-                    quantityField.getText().trim()
-            );
             String unit = unitField.getText().trim();
 
             if (id.isEmpty() || name.isEmpty() ||
@@ -205,6 +241,17 @@ public class MainFrame extends JFrame {
 
                 JOptionPane.showMessageDialog(
                         this, "Please fill in all required fields."
+                );
+                return;
+            }
+
+            double quantity = Double.parseDouble(
+                    quantityField.getText().trim()
+            );
+
+            if (!Double.isFinite(quantity) || quantity < 0) {
+                JOptionPane.showMessageDialog(
+                        this, "Quantity must be a valid non-negative number."
                 );
                 return;
             }
@@ -264,50 +311,160 @@ public class MainFrame extends JFrame {
         }
     }
 
+
+
+    /**
+     * Updates an existing food item, including its expiry date.
+     */
+    /**
+     * Updates the selected food item, including its expiry date when applicable.
+     * Validates required fields and quantity before saving the changes.
+     */
     private void updateFood() {
 
         try {
 
             String id = idField.getText().trim();
+            String name = nameField.getText().trim();
+            String category = categoryField.getText().trim();
+            String unit = unitField.getText().trim();
 
+            // Validate required fields
+            if (id.isEmpty() || name.isEmpty() ||
+                    category.isEmpty() || unit.isEmpty()) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Please fill in all required fields."
+                );
+                return;
+            }
+
+            // Validate quantity
             double quantity = Double.parseDouble(
                     quantityField.getText().trim()
             );
 
+            if (!Double.isFinite(quantity) || quantity < 0) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Quantity must be a valid non-negative number."
+                );
+                return;
+            }
+
+            // Check whether the food exists
+            Food existingFood = foodManager.findFoodById(id);
+
+            if (existingFood == null) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Food ID not found."
+                );
+                return;
+            }
+
+            // Read expiry date for perishable food
+            LocalDate expiryDate = null;
+
+            if (existingFood instanceof PerishableFood) {
+
+                String expiryText = expiryField.getText().trim();
+
+                if (expiryText.isEmpty()) {
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Please enter an expiry date."
+                    );
+                    return;
+                }
+
+                expiryDate = LocalDate.parse(expiryText);
+            }
+
+            // Update food information and expiry date
             boolean success = foodManager.updateFood(
                     id,
-                    nameField.getText().trim(),
-                    categoryField.getText().trim(),
+                    name,
+                    category,
                     quantity,
-                    unitField.getText().trim()
+                    unit,
+                    expiryDate
             );
 
             if (success) {
+
                 saveData();
                 refreshTable();
                 clearFields();
 
                 JOptionPane.showMessageDialog(
-                        this, "Food updated successfully!"
+                        this,
+                        "Food updated successfully!"
                 );
 
             } else {
+
                 JOptionPane.showMessageDialog(
-                        this, "Food not found or invalid quantity."
+                        this,
+                        "Unable to update food."
                 );
             }
 
         } catch (NumberFormatException ex) {
 
             JOptionPane.showMessageDialog(
-                    this, "Invalid quantity."
+                    this,
+                    "Please enter a valid quantity."
+            );
+
+        } catch (java.time.format.DateTimeParseException ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Invalid expiry date. Use yyyy-mm-dd."
+            );
+
+        } catch (IllegalArgumentException ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    ex.getMessage()
             );
         }
     }
 
+    /**
+     * Deletes a food item after user confirmation.
+     */
+    /**
+     * Deletes the selected food item after asking the user for confirmation.
+     */
     private void deleteFood() {
 
         String id = idField.getText().trim();
+
+        if (id.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this, "Please select a food item first."
+            );
+            return;
+        }
+
+        int choice = JOptionPane.showConfirmDialog(
+                this,
+                "Are you sure you want to delete this food item?",
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+
+        if (choice != JOptionPane.YES_OPTION) {
+            return;
+        }
 
         if (foodManager.deleteFood(id)) {
 
@@ -327,6 +484,10 @@ public class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * Records a quantity of food as waste, reduces the inventory quantity,
+     * and saves the updated inventory and waste records.
+     */
     private void recordWaste() {
 
         try {
@@ -351,7 +512,13 @@ public class MainFrame extends JFrame {
             }
 
             double amount = Double.parseDouble(input);
-
+            if (!isValidQuantity(amount)) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Waste quantity must be a positive number."
+                );
+                return;
+            }
             if (!foodManager.reduceQuantity(id, amount)) {
 
                 JOptionPane.showMessageDialog(
@@ -387,6 +554,13 @@ public class MainFrame extends JFrame {
         }
     }
 
+
+    /**
+     * Displays expired and soon-to-expire food alerts.
+     */
+    /**
+     * Displays expired, expiring-today, and soon-to-expire food items.
+     */
     private void showExpiryAlert() {
 
         ArrayList<PerishableFood> foods =
@@ -396,27 +570,49 @@ public class MainFrame extends JFrame {
 
         if (foods.isEmpty()) {
 
-            message.append("No food expiring within 3 days.");
+            message.append("No expired or expiring food.");
 
         } else {
 
             message.append("FOOD EXPIRY ALERT\n\n");
 
+            LocalDate today = LocalDate.now();
+
             for (PerishableFood food : foods) {
+
+                LocalDate expiry = food.getExpiryDate();
+
+                String status;
+
+                if (expiry.isBefore(today)) {
+                    status = "EXPIRED";
+                } else if (expiry.isEqual(today)) {
+                    status = "EXPIRES TODAY";
+                } else {
+                    status = "EXPIRING SOON";
+                }
 
                 message.append(food.getFoodName())
                         .append(" - ")
-                        .append(food.getExpiryDate())
+                        .append(expiry)
+                        .append(" - ")
+                        .append(status)
                         .append("\n");
             }
         }
 
         JOptionPane.showMessageDialog(
-                this, message.toString(), "Expiry Alert",
+                this,
+                message.toString(),
+                "Expiry Alert",
                 JOptionPane.INFORMATION_MESSAGE
         );
     }
 
+
+    /**
+     * Displays the waste report generated from the stored waste records.
+     */
     private void showWasteReport() {
 
         JOptionPane.showMessageDialog(
@@ -427,6 +623,9 @@ public class MainFrame extends JFrame {
         );
     }
 
+    /**
+     * Clears and repopulates the inventory table using the latest food data.
+     */
     private void refreshTable() {
 
         tableModel.setRowCount(0);
@@ -456,6 +655,10 @@ public class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * Clears all input fields, resets the food type selection,
+     * and removes the current table selection.
+     */
     private void clearFields() {
 
         idField.setText("");
@@ -469,6 +672,10 @@ public class MainFrame extends JFrame {
         foodTable.clearSelection();
     }
 
+    /**
+     * Saves all food inventory items and waste records to their CSV files.
+     * Shows an error message if the files cannot be written.
+     */
     private void saveData() {
 
         try {
@@ -487,6 +694,10 @@ public class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * Loads food inventory items and waste records from their CSV files
+     * when the application starts.
+     */
     private void loadData() {
 
         try {

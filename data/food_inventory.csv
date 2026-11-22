@@ -1,1 +1,3 @@
-Type|ID|Name|Category|Quantity|Unit|ExpiryDate
+Type,ID,Name,Category,Quantity,Unit,ExpiryDate
+Perishable,TEST001,Milk,Dairy,1.5,L,2026-11-26
+Perishable,TEST002,Apple,Fruit,0.5,kg,2026-11-23
