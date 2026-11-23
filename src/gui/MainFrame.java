@@ -302,6 +302,11 @@ public class MainFrame extends JFrame {
             JOptionPane.showMessageDialog(
                     this, "Please enter a valid quantity."
             );
+        } catch (java.time.format.DateTimeParseException ex) {
+
+            JOptionPane.showMessageDialog(
+                    this, "Invalid expiry date. Use yyyy-mm-dd."
+            );
 
         } catch (IllegalArgumentException ex) {
 
@@ -310,12 +315,7 @@ public class MainFrame extends JFrame {
             );
         }
     }
-
-
-
-    /**
-     * Updates an existing food item, including its expiry date.
-     */
+    
     /**
      * Updates the selected food item, including its expiry date when applicable.
      * Validates required fields and quantity before saving the changes.

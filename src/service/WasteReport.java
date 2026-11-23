@@ -65,9 +65,11 @@ public class WasteReport {
 
         for (WasteRecord record : wasteRecords) {
 
-            String unit = record.getUnit()
-                    .trim()
-                    .toLowerCase(java.util.Locale.ROOT);
+            String unit = record.getUnit().trim();
+
+            if (unit.equalsIgnoreCase("l")) {
+                unit = "L";
+            }
 
             double quantity = record.getWastedQuantity();
 
